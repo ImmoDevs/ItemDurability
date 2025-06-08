@@ -1,6 +1,6 @@
 name: ItemDurability
 main: ImmoDevs\ItemDurability\ItemDurability
-version: 1.0.0
+version: 2.0.0
 api: 5.0.0
 author: ImmoDevs
 description: Displays the durability of items below their name

@@ -25,4 +25,18 @@ enable_low_durability_warning: true
 low_durability_percentage: 10
 
 # Low durability warning color
-low_durability_color: "RED" 
+low_durability_color: "RED"
+
+# Performance Settings
+# How often to process durability updates (in server ticks, 20 ticks = 1 second)
+# Lower values = more responsive but higher CPU usage
+# Higher values = less responsive but better performance
+update_interval_ticks: 10
+
+# Minimum time between durability updates for the same player (in seconds)
+# This prevents spam updates when players rapidly interact with items
+throttle_seconds: 0.2
+
+# Maximum number of players to process durability updates for per batch
+# Adjust based on your server's performance and player count
+max_batch_size: 50

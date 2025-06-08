@@ -40,101 +40,278 @@ use pocketmine\event\player\PlayerItemHeldEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerItemUseEvent;
 use pocketmine\event\player\PlayerItemConsumeEvent;
+use pocketmine\event\player\PlayerQuitEvent;
 use pocketmine\item\Durable;
 use pocketmine\item\Item;
 use pocketmine\plugin\PluginBase;
 use pocketmine\utils\TextFormat;
 use pocketmine\player\Player;
+use pocketmine\scheduler\TaskHandler;
 
 class ItemDurability extends PluginBase implements Listener
 {
+    private array $pendingUpdates = [];
     private array $lastUpdate = [];
+    private ?TaskHandler $batchUpdateTask = null;
+    
+    private const DEFAULT_CONFIG = [
+        'durability_format' => 'Durability: [%current%/%max%] (%percent%%)',
+        'durability_color' => 'GREEN',
+        'enable_low_durability_warning' => true,
+        'low_durability_percentage' => 10,
+        'low_durability_color' => 'RED',
+        'update_interval_ticks' => 10,
+        'throttle_seconds' => 0.2,
+        'max_batch_size' => 50
+    ];
+    
+    private const VALID_COLORS = [
+        'BLACK', 'DARK_BLUE', 'DARK_GREEN', 'DARK_AQUA', 'DARK_RED', 
+        'DARK_PURPLE', 'GOLD', 'GRAY', 'DARK_GRAY', 'BLUE', 'GREEN', 
+        'AQUA', 'RED', 'LIGHT_PURPLE', 'YELLOW', 'WHITE'
+    ];
 
     public function onEnable(): void
     {
         $this->saveDefaultConfig();
         $this->reloadConfig();
+        
+        if (!$this->validateConfig()) {
+            $this->getLogger()->error("Invalid configuration detected. Plugin will use default values where necessary.");
+        }
+        
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
-        $this->getLogger()->info("ItemDurability plugin has been enabled!");
+        $this->startBatchUpdateTask();
+    }
+
+    public function onDisable(): void
+    {
+        if ($this->batchUpdateTask !== null) {
+            $this->batchUpdateTask->cancel();
+        }
+    }
+
+    /**
+     * Validates the plugin configuration
+     */
+    private function validateConfig(): bool
+    {
+        $config = $this->getConfig();
+        $isValid = true;
+        
+        $format = $config->get('durability_format', '');
+        if (empty($format) || !is_string($format)) {
+            $this->getLogger()->warning("Invalid durability_format in config. Using default.");
+            $config->set('durability_format', self::DEFAULT_CONFIG['durability_format']);
+            $isValid = false;
+        }
+        
+        $colors = ['durability_color', 'low_durability_color'];
+        foreach ($colors as $colorKey) {
+            $color = strtoupper($config->get($colorKey, ''));
+            if (!in_array($color, self::VALID_COLORS)) {
+                $this->getLogger()->warning("Invalid {$colorKey} in config. Using default.");
+                $config->set($colorKey, self::DEFAULT_CONFIG[$colorKey]);
+                $isValid = false;
+            }
+        }
+        
+        $percentage = $config->get('low_durability_percentage', 0);
+        if (!is_numeric($percentage) || $percentage < 0 || $percentage > 100) {
+            $this->getLogger()->warning("Invalid low_durability_percentage in config. Must be between 0-100.");
+            $config->set('low_durability_percentage', self::DEFAULT_CONFIG['low_durability_percentage']);
+            $isValid = false;
+        }
+        
+        $updateInterval = $config->get('update_interval_ticks', 0);
+        if (!is_numeric($updateInterval) || $updateInterval < 1) {
+            $this->getLogger()->warning("Invalid update_interval_ticks in config. Must be at least 1.");
+            $config->set('update_interval_ticks', self::DEFAULT_CONFIG['update_interval_ticks']);
+            $isValid = false;
+        }
+        
+        $throttle = $config->get('throttle_seconds', 0);
+        if (!is_numeric($throttle) || $throttle < 0) {
+            $this->getLogger()->warning("Invalid throttle_seconds in config. Must be 0 or greater.");
+            $config->set('throttle_seconds', self::DEFAULT_CONFIG['throttle_seconds']);
+            $isValid = false;
+        }
+        
+        $batchSize = $config->get('max_batch_size', 0);
+        if (!is_numeric($batchSize) || $batchSize < 1) {
+            $this->getLogger()->warning("Invalid max_batch_size in config. Must be at least 1.");
+            $config->set('max_batch_size', self::DEFAULT_CONFIG['max_batch_size']);
+            $isValid = false;
+        }
+        
+        $boolSettings = ['enable_low_durability_warning'];
+        foreach ($boolSettings as $setting) {
+            $value = $config->get($setting);
+            if (!is_bool($value)) {
+                $this->getLogger()->warning("Invalid {$setting} in config. Must be true or false.");
+                $config->set($setting, self::DEFAULT_CONFIG[$setting]);
+                $isValid = false;
+            }
+        }
+        
+        if (!$isValid) {
+            $this->saveConfig();
+        }
+        
+        return $isValid;
+    }
+
+    /**
+     * Starts the batch update task
+     */
+    private function startBatchUpdateTask(): void
+    {
+        $updateInterval = $this->getConfig()->get('update_interval_ticks', self::DEFAULT_CONFIG['update_interval_ticks']);
+        
+        $this->batchUpdateTask = $this->getScheduler()->scheduleRepeatingTask(
+            new BatchUpdateTask($this), 
+            $updateInterval
+        );
     }
 
     public function onPlayerJoin(PlayerJoinEvent $event): void
     {
-        $this->updateItemDurability($event->getPlayer());
+        $this->queueDurabilityUpdate($event->getPlayer());
+    }
+
+    public function onPlayerQuit(PlayerQuitEvent $event): void
+    {
+        $playerName = $event->getPlayer()->getName();
+        unset($this->pendingUpdates[$playerName]);
+        unset($this->lastUpdate[$playerName]);
     }
 
     public function onItemHeld(PlayerItemHeldEvent $event): void
     {
-        $this->updateItemDurability($event->getPlayer());
+        $this->queueDurabilityUpdate($event->getPlayer());
     }
 
     public function onInteract(PlayerInteractEvent $event): void
     {
-        $this->updateItemDurability($event->getPlayer());
+        $this->queueDurabilityUpdate($event->getPlayer());
     }
 
     public function onBlockBreak(BlockBreakEvent $event): void
     {
-        $this->updateItemDurability($event->getPlayer());
+        $this->queueDurabilityUpdate($event->getPlayer());
     }
 
     public function onEntityDamage(EntityDamageByEntityEvent $event): void
     {
         $damager = $event->getDamager();
         if ($damager instanceof Player) {
-            $this->updateItemDurability($damager);
+            $this->queueDurabilityUpdate($damager);
         }
     }
 
     public function onItemUse(PlayerItemUseEvent $event): void
     {
-        $this->updateItemDurability($event->getPlayer());
+        $this->queueDurabilityUpdate($event->getPlayer());
     }
 
     public function onItemConsume(PlayerItemConsumeEvent $event): void
     {
-        $this->updateItemDurability($event->getPlayer());
+        $this->queueDurabilityUpdate($event->getPlayer());
     }
 
-    public function updateItemDurability(Player $player): void
+    /**
+     * Queues a player for durability update with throttling
+     */
+    private function queueDurabilityUpdate(Player $player): void
     {
-        $currentTime = microtime(true);
-        if (
-            isset($this->lastUpdate[$player->getName()]) &&
-            $currentTime - $this->lastUpdate[$player->getName()] < 0.1
-        ) {
+        if (!$player->isOnline()) {
             return;
         }
+        
+        $playerName = $player->getName();
+        $currentTime = microtime(true);
+        $throttleTime = $this->getConfig()->get('throttle_seconds', self::DEFAULT_CONFIG['throttle_seconds']);
+        
+        if (isset($this->lastUpdate[$playerName]) && 
+            $currentTime - $this->lastUpdate[$playerName] < $throttleTime) {
+            return;
+        }
+        
+        $item = $player->getInventory()->getItemInHand();
+        if ($this->isDurableItem($item)) {
+            $this->pendingUpdates[$playerName] = $currentTime;
+            $this->lastUpdate[$playerName] = $currentTime;
+        }
+    }
 
-        $inventory = $player->getInventory();
-        $slot = $inventory->getHeldItemIndex();
-        $item = $inventory->getItem($slot);
-
-        if ($this->hasValidDurability($item)) {
+    /**
+     * Processes pending durability updates in batches
+     */
+    public function processPendingUpdates(): void
+    {
+        if (empty($this->pendingUpdates)) {
+            return;
+        }
+        
+        $maxBatchSize = $this->getConfig()->get('max_batch_size', self::DEFAULT_CONFIG['max_batch_size']);
+        $processed = 0;
+        
+        foreach ($this->pendingUpdates as $playerName => $queueTime) {
+            if ($processed >= $maxBatchSize) {
+                break;
+            }
+            
+            $player = $this->getServer()->getPlayerExact($playerName);
+            if ($player === null || !$player->isOnline()) {
+                unset($this->pendingUpdates[$playerName]);
+                continue;
+            }
+            
             try {
-                $this->getScheduler()->scheduleDelayedTask(new UpdateDurabilityTask($this, $player, $item), 1);
-                $this->lastUpdate[$player->getName()] = $currentTime;
+                $this->updateItemDurability($player);
+                unset($this->pendingUpdates[$playerName]);
+                $processed++;
             } catch (\Exception $e) {
-                $this->getLogger()->error("Error updating item durability: " . $e->getMessage());
+                $this->getLogger()->error("Error updating durability for {$playerName}: " . $e->getMessage());
+                unset($this->pendingUpdates[$playerName]);
             }
         }
     }
 
-    public function hasValidDurability(Item $item): bool
+    /**
+     * Updates the durability display for a player's held item
+     */
+    private function updateItemDurability(Player $player): void
     {
-        return $item instanceof Durable;
+        $inventory = $player->getInventory();
+        $item = $inventory->getItemInHand();
+
+        if ($this->isDurableItem($item)) {
+            $this->updateItemLore($item, $player);
+        }
     }
 
+    /**
+     * Checks if an item has valid durability
+     */
+    public function isDurableItem(Item $item): bool
+    {
+        return $item instanceof Durable && $item->getMaxDurability() > 0;
+    }
+
+    /**
+     * Updates the lore of an item with durability information
+     */
     public function updateItemLore(Item $item, Player $player): void
     {
-        if (!$this->hasValidDurability($item)) {
+        if (!$this->isDurableItem($item)) {
             return;
         }
 
         /** @var Durable $item */
         $maxDurability = $item->getMaxDurability();
-        $currentDurability = $item->getDamage();
-        $remainingDurability = $maxDurability - $currentDurability;
+        $currentDamage = $item->getDamage();
+        $remainingDurability = $maxDurability - $currentDamage;
         
         $durabilityPercentage = ($remainingDurability / $maxDurability) * 100;
         
@@ -147,7 +324,7 @@ class ItemDurability extends PluginBase implements Listener
             }
         }
 
-        $format = $this->getConfig()->get("durability_format", "Durability: [%current%/%max%]");
+        $format = $this->getConfig()->get("durability_format", self::DEFAULT_CONFIG['durability_format']);
         $durabilityText = str_replace(
             ["%current%", "%max%", "%percent%"], 
             [$remainingDurability, $maxDurability, round($durabilityPercentage)], 
@@ -174,9 +351,6 @@ class ItemDurability extends PluginBase implements Listener
     
     /**
      * Get TextFormat color constant from config string
-     *
-     * @param string $colorName The color name (RED, GREEN, BLUE, etc.)
-     * @return string The TextFormat color constant
      */
     private function getTextFormatColor(string $colorName): string
     {
@@ -204,10 +378,7 @@ class ItemDurability extends PluginBase implements Listener
     }
     
     /**
-     * Gets a color based on durability percentage
-     * 
-     * @param float $percentage The durability percentage
-     * @return string The TextFormat color code
+     * Gets a color based on durability percentage with smooth gradation
      */
     private function getDurabilityColor(float $percentage): string
     {
