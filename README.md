@@ -1,21 +1,62 @@
-# ItemDurability Plugin
+# ItemDurability - Pocketmine-MP Plugin
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/ImmoDevs/ItemDurability/main/icon.png" width="200" alt="Icon">
 </p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![PocketMine-MP](https://img.shields.io/badge/PocketMine--MP-5.0+-orange.svg)](https://github.com/pmmp/PocketMine-MP)
+<p align="center">
+  <a href="https://poggit.pmmp.io/p/ItemDurability">
+    <img src="https://poggit.pmmp.io/shield.state/ItemDurability" alt="Poggit Approval State">
+  </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+  </a>
+  <a href="https://github.com/ImmoDevs/ItemDurability">
+    <img src="https://img.shields.io/badge/ItemDurability-v2.0.0-brightgreen.svg" alt="Plugin Version">
+  </a>
+  <a href="https://github.com/ImmoDevs/ItemDurability/issues">
+    <img src="https://img.shields.io/github/issues/ImmoDevs/ItemDurability" alt="GitHub Issues">
+  </a>
+  <a href="https://github.com/ImmoDevs/ItemDurability/releases">
+    <img src="https://img.shields.io/github/v/release/ImmoDevs/ItemDurability" alt="Latest GitHub Release">
+  </a>
+  <a href="https://poggit.pmmp.io/p/ItemDurability">
+    <img src="https://poggit.pmmp.io/shield.api/ItemDurability" alt="Poggit API Level">
+  </a>
+  <a href="https://poggit.pmmp.io/p/ItemDurability">
+    <img src="https://poggit.pmmp.io/shield.dl/ItemDurability" alt="Download Count">
+  </a>
+  <a href="https://github.com/ImmoDevs/ItemDurability/stargazers">
+    <img src="https://img.shields.io/github/stars/ImmoDevs/ItemDurability?style=social" alt="GitHub Stars">
+  </a>
+</p>
 
-## Description
+## 📘 Description
 
 **ItemDurability** is a high-performance PocketMine-MP plugin that displays item durability information in real-time within the item's lore (description). This plugin helps players see the remaining durability of weapons, tools, and armor, allowing them to know when to repair or replace them before they break.
 
-## Preview
+### 🏷️ Tags
+<p align="center">
+  <a href="#informational"><code>Informational</code></a>
+  <a href="#mechanics"><code>Mechanics</code></a>
+  <a href="#economy"><code>Economy</code></a>
+  <a href="#vanilla-mechanics"><code>Vanilla Mechanics</code></a>
+  <a href="#armor"><code>Armor</code></a>
+  <a href="#durability"><code>Durability</code></a>
+  <a href="#hud"><code>HUD</code></a>
+  <a href="#item-lore"><code>Item Lore</code></a>
+  <a href="https://github.com/pmmp/PocketMine-MP"><code>PocketMine-MP@latest</code></a>
+  <a href="#tools"><code>Tools</code></a>
+  <a href="#weapons"><code>Weapons</code></a>
+</p>
+
+---
+
+## 📸 Preview
 
 ![preview](images/preview.jpg)
 
-### Example Durability Color System
+### 🔹 Durability Color System
 
 In-game, the durability text will automatically change colors based on the item's condition:
 
@@ -28,7 +69,7 @@ In-game, the durability text will automatically change colors based on the item'
 | ![#FF5555](https://placehold.co/15/FF5555/FF5555.png) | Red | **Durability: [30/200] (15%)** | Very Low Condition |
 | ![#AA0000](https://placehold.co/15/AA0000/AA0000.png) | Dark Red | **Durability: [10/200] (5%)** | Critical Condition |
 
-## Features
+# ✨ Features
 
 ### Core Features
 - ✅ **Real-time Durability Display**: Shows durability in customizable format within item lore
@@ -51,14 +92,16 @@ In-game, the durability text will automatically change colors based on the item'
 - ⚙️ **Plugin Compatibility**: Works seamlessly with enchantment and repair plugins
 - ⚙️ **Server Scalability**: Optimized for servers from 1 to 1000+ players
 
-## Installation
+---
+
+## 📦 Installation
 
 1. Download the latest version from [GitHub Releases](https://github.com/ImmoDevs/ItemDurability/releases)
 2. Place the `.phar` file in the `plugins` folder of your PocketMine-MP server
 3. Restart the server
 4. Edit the configuration file in `plugins/ItemDurability/config.yml` as needed
 
-## Configuration
+## ⚙️ Configuration
 
 ```yaml
 # ItemDurability Configuration
@@ -105,41 +148,28 @@ throttle_seconds: 0.2
 max_batch_size: 50
 ```
 
-### Performance Tuning
+## 📈 Optimization Guide
 
-Configure the plugin based on your server size:
+### 🧪 Recommended Settings:
 
-#### Small Servers (1-50 players)
-```yaml
-update_interval_ticks: 5
-throttle_seconds: 0.1
-max_batch_size: 20
-```
+| Players Server Size     | `update_interval_ticks` | `throttle_seconds` | `max_batch_size` |
+| --------------- | ----------------------- | ------------------ | ---------------- |
+| Small (1–50)    | 5                       | 0.1                | 20               |
+| Medium (50–200) | 10                      | 0.2                | 50               |
+| Large (200+)    | 20                      | 0.5                | 100              |
 
-#### Medium Servers (50-200 players)
-```yaml
-update_interval_ticks: 10
-throttle_seconds: 0.2
-max_batch_size: 50
-```
+---
 
-#### Large Servers (200+ players)
-```yaml
-update_interval_ticks: 20
-throttle_seconds: 0.5
-max_batch_size: 100
-```
+# 🔍 Technical Overview
 
-## Technical Details
-
-### Batch Processing System
+## 🧠 Batch Processing System
 The plugin uses an advanced batch processing system that:
 - Queues durability updates instead of processing them immediately
 - Processes updates in configurable batches to maintain performance
 - Uses smart throttling to prevent spam updates
 - Automatically cleans up data for offline players
 
-### Config Validation
+## 🛡️ Config Validation
 The plugin automatically validates all configuration values:
 - **Format Strings**: Ensures durability format is not empty
 - **Color Names**: Validates against supported TextFormat colors
@@ -147,18 +177,18 @@ The plugin automatically validates all configuration values:
 - **Performance Settings**: Validates update intervals and batch sizes
 - **Auto-Correction**: Invalid values are replaced with defaults and logged
 
-### Supported Colors
+## Supported Colors
 Valid color names for configuration:
 `BLACK`, `DARK_BLUE`, `DARK_GREEN`, `DARK_AQUA`, `DARK_RED`, `DARK_PURPLE`, `GOLD`, `GRAY`, `DARK_GRAY`, `BLUE`, `GREEN`, `AQUA`, `RED`, `LIGHT_PURPLE`, `YELLOW`, `WHITE`
 
-## Compatibility
+## ✅ Compatibility
 
-- **PocketMine-MP**: 5.0 or newer
+- **PocketMine-MP**: 5.0.0 or latest
 - **Plugin Compatibility**: Works with enchantment, repair, and custom item plugins
 - **Server Types**: Compatible with survival, creative, and custom game modes
 - **Performance**: Optimized for servers of all sizes (1-1000+ players)
 
-## FAQ
+## ❓ F.A.Q
 
 **Q: How does the new batch system improve performance?**  
 A: Instead of creating individual tasks for each update, the plugin queues updates and processes them in batches. This reduces CPU overhead and prevents lag spikes on busy servers.
@@ -178,7 +208,9 @@ A: Yes, it's designed to work seamlessly with other plugins without conflicts, e
 **Q: How can I request new features?**  
 A: Submit a feature request on [GitHub Issues](https://github.com/ImmoDevs/ItemDurability/issues) or contact us through the links below.
 
-## Changelog
+---
+
+## 📝 Changelog
 
 ### Version 2.0.0 (Latest)
 - 🚀 **New**: Batch processing system for improved performance
@@ -193,39 +225,45 @@ A: Submit a feature request on [GitHub Issues](https://github.com/ImmoDevs/ItemD
 ### Version 1.0.0
 - Initial release with basic durability display functionality
 
-## License
+---
 
-This plugin is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+## 📄 License
 
-## Contact & Support
+Licensed under [MIT License](https://opensource.org/licenses/MIT)
 
-- **GitHub**: [ImmoDevs/ItemDurability](https://github.com/ImmoDevs/ItemDurability)
-- **Discord**: [ImmoDevs Discord Server](https://discord.gg/immodevs)
-- **Issues**: [Report bugs or request features](https://github.com/ImmoDevs/ItemDurability/issues)
+---
 
-## Tips and Best Practices
+## 🤝 Contact & Support
 
-### Customization Tips
-- **Custom Format**: You can customize the format to show only what you need. For example, if you only want to show percentage: `durability_format: "Durability: %percent%%"`
-- **Color Customization**: The automatic color gradation provides visual feedback, but you can override it with custom warning colors
-- **Format Placeholders**: Use `%current%`, `%max%`, and `%percent%` in any combination to create your ideal display format
+* 🌐 [GitHub Repository](https://github.com/ImmoDevs/ItemDurability)
+* 💬 [Discord Support](https://discord.gg/immodevs)
+* 🐛 [Report an Issue](https://github.com/ImmoDevs/ItemDurability/issues)
 
-### Performance Tips
-- **Large Servers**: Increase `update_interval_ticks` and `throttle_seconds` for better performance
-- **Small Servers**: Decrease these values for more responsive updates
-- **Batch Size**: Adjust `max_batch_size` based on your server's CPU capacity
-- **Monitor Logs**: Check server logs for any configuration warnings or errors
+# 📌 Tips and Best Practices
 
-### Integration Tips
-- **Repair Plugins**: This plugin works well with repair and enchantment plugins
-- **Custom Items**: Compatible with plugins that create custom durable items
-- **Economy Plugins**: Great for servers with item-based economies where durability matters
-- **PvP Servers**: Essential for competitive servers where equipment condition is crucial
+### 🎨 Customization Tips
+- 🧩 **Custom Format**: Customize the display format to show exactly what you want.  
+  For example, to show only the percentage:  
+  `durability_format: "Durability: %percent%%"`
+- 🌈 **Color Customization**: The automatic gradient provides intuitive feedback, but you can override it with custom warning colors.
+- 🔣 **Format Placeholders**: Use `%current%`, `%max%`, and `%percent%` in any combination to design your ideal display.
 
-### Screenshots and Documentation
-- Take screenshots of items with different durability levels to showcase the color system
-- Document your custom format strings for server staff
-- Share performance settings that work well for your server size
+### ⚙️ Performance Tips
+- 📈 **Large Servers**: Increase `update_interval_ticks` and `throttle_seconds` to reduce CPU load.
+- ⚡ **Small Servers**: Decrease these values for more responsive updates.
+- 🧮 **Batch Size**: Adjust `max_batch_size` based on your server’s performance capacity.
+- 🪵 **Monitor Logs**: Always monitor server logs for configuration warnings or optimization hints.
+
+### 🔗 Integration Tips
+- 🛠️ **Repair Plugins**: Fully compatible with enchantment and item-repair plugins.
+- 🧪 **Custom Items**: Supports plugins that register custom durable items.
+- 💰 **Economy Plugins**: Great for item-based economy servers where durability matters.
+- ⚔️ **PvP Servers**: Essential for competitive servers to show equipment condition in real-time.
+
+### 🖼️ Screenshots & Documentation
+- 📸 Take screenshots showing different durability levels to showcase the color system.
+- 🧾 Document your custom format strings for staff reference or future tweaking.
+- 📤 Share performance settings that work best for your server size and player count.
 
 ---
 
